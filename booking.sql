@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 04, 2023 at 05:28 PM
+-- Generation Time: Dec 06, 2023 at 05:58 PM
 -- Server version: 10.4.28-MariaDB
 -- PHP Version: 8.2.4
 
@@ -51,6 +51,20 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `InsertIntoBilling` (IN `p_bookingID
     VALUES (p_bookingID, p_status, p_userID);
 END$$
 
+--
+-- Functions
+--
+CREATE DEFINER=`root`@`localhost` FUNCTION `GetLatestBookingID` () RETURNS INT(11)  BEGIN
+    DECLARE latestBookingID INT;
+    
+    SELECT bookingID INTO latestBookingID
+    FROM bookingDates
+    ORDER BY bookingID DESC
+    LIMIT 1;
+    
+    RETURN latestBookingID;
+END$$
+
 DELIMITER ;
 
 -- --------------------------------------------------------
@@ -96,8 +110,15 @@ INSERT INTO `billing` (`billID`, `bookingID`, `status`, `userID`) VALUES
 (2, 16, 'Approved', 1),
 (3, 17, 'Decline', 1),
 (5, 18, 'Approved', 1),
-(6, 19, 'Pending', 1),
-(7, 20, 'Pending', 1);
+(6, 19, 'Decline', 1),
+(7, 20, 'Decline', 1),
+(8, 21, 'Decline', 1),
+(9, 22, 'Decline', 1),
+(10, 23, 'Decline', 1),
+(11, 24, 'Decline', 1),
+(12, 25, 'Decline', 1),
+(13, 26, 'Decline', 1),
+(14, 27, 'Decline', 1);
 
 --
 -- Triggers `billing`
@@ -106,6 +127,15 @@ DELIMITER $$
 CREATE TRIGGER `after_update_approved` AFTER UPDATE ON `billing` FOR EACH ROW BEGIN
     IF NEW.status = 'Approved' THEN
         INSERT INTO approveddates(approvedDate, bookingID)
+        VALUES (NOW(), NEW.bookingID);
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `after_update_decline` AFTER UPDATE ON `billing` FOR EACH ROW BEGIN
+    IF NEW.status = 'Decline' THEN
+        INSERT INTO declineddates(declinedDate, bookingID)
         VALUES (NOW(), NEW.bookingID);
     END IF;
 END
@@ -138,7 +168,14 @@ INSERT INTO `bookingdates` (`bookingID`, `clientID`, `servicesID`, `date`, `time
 (17, 17, 1, '2023-12-06', '09:00 AM', 1, 'LN298746543123'),
 (18, 18, 1, '2023-12-04', '09:00 AM', 2, 'LN097545782131'),
 (19, 19, 1, '2023-12-04', '10:00 AM', 2, 'LN97646781234'),
-(20, 20, 1, '2023-12-04', '04:00 PM', 3, 'LN09966627641');
+(20, 20, 1, '2023-12-04', '04:00 PM', 3, 'LN09966627641'),
+(21, 21, 1, '2023-12-04', '05:00 PM', 1, 'LN1232131'),
+(22, 22, 1, '2023-12-20', '09:00 AM', 1, 'LN1231000001'),
+(23, 23, 1, '2023-12-05', '08:00 AM', 1, 'LN000000000'),
+(24, 24, 1, '2023-12-01', '08:00 AM', 1, 'LN0000000000'),
+(25, 25, 1, '2023-12-30', '01:00 PM', 1, 'LN2131110012'),
+(26, 26, 1, '2023-12-04', '01:00 PM', 1, 'LN2131110012'),
+(27, 27, 1, '2023-12-04', '08:00 AM', 1, 'LB123213333121');
 
 -- --------------------------------------------------------
 
@@ -177,7 +214,42 @@ INSERT INTO `client` (`clientID`, `name`, `band`, `contact`) VALUES
 (17, 'Joshua', 'Omen', '09876542123'),
 (18, 'asdfghj', 'asdfghj', '09876543234'),
 (19, 'asdfgfdsa', 'sdfgwewq', '09765437999'),
-(20, 'Jessie Jessie', 'Jesss', '09878765562');
+(20, 'Jessie Jessie', 'Jesss', '09878765562'),
+(21, 'asdfghj', 'ASDFGHJ', '21345675432'),
+(22, 'asdfghjkl', 'sdfghjkl', '09345676543'),
+(23, 'asdfghj', 'dswadwa', '97654323456'),
+(24, 'asdfghjkl', 'adsfghjkl', '90876546544'),
+(25, 'adsfghjkl', 'sdfghjkl', '09234567543'),
+(26, 'adsfghjkl', 'sdfghjkl', '09234567543'),
+(27, 'adsfghjkl', 'adsfghjkl', '09321321321');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `declineddates`
+--
+
+CREATE TABLE `declineddates` (
+  `dID` int(11) NOT NULL,
+  `declinedDate` date NOT NULL,
+  `bookingID` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `declineddates`
+--
+
+INSERT INTO `declineddates` (`dID`, `declinedDate`, `bookingID`) VALUES
+(1, '2023-12-06', 17),
+(2, '2023-12-06', 20),
+(3, '2023-12-06', 21),
+(4, '2023-12-06', 19),
+(5, '2023-12-07', 22),
+(6, '2023-12-07', 23),
+(7, '2023-12-07', 24),
+(8, '2023-12-07', 25),
+(9, '2023-12-07', 26),
+(10, '2023-12-07', 27);
 
 -- --------------------------------------------------------
 
@@ -252,6 +324,12 @@ ALTER TABLE `client`
   ADD PRIMARY KEY (`clientID`);
 
 --
+-- Indexes for table `declineddates`
+--
+ALTER TABLE `declineddates`
+  ADD PRIMARY KEY (`dID`);
+
+--
 -- Indexes for table `sevices`
 --
 ALTER TABLE `sevices`
@@ -277,19 +355,25 @@ ALTER TABLE `approveddates`
 -- AUTO_INCREMENT for table `billing`
 --
 ALTER TABLE `billing`
-  MODIFY `billID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `billID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `bookingdates`
 --
 ALTER TABLE `bookingdates`
-  MODIFY `bookingID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `bookingID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `client`
 --
 ALTER TABLE `client`
-  MODIFY `clientID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `clientID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+
+--
+-- AUTO_INCREMENT for table `declineddates`
+--
+ALTER TABLE `declineddates`
+  MODIFY `dID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `sevices`
